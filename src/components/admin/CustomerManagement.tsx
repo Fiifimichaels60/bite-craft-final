@@ -170,7 +170,7 @@ const CustomerManagement = () => {
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.phone.includes(searchTerm) ||
-    (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase()))
+    (customer.email ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const sortedCustomers = [...filteredCustomers].sort((a, b) => {

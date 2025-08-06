@@ -252,13 +252,13 @@ function AdminDashboardContent() {
                 <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Customers</span>
                 <span className="sm:hidden">Users</span>
-                <NotificationBadge count={newCustomers} />
+                {newCustomers > 0 && <NotificationBadge count={newCustomers} />}
               </TabsTrigger>
               <TabsTrigger value="chat" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm relative">
                 <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Chat</span>
                 <span className="sm:hidden">Chat</span>
-                <NotificationBadge count={unreadMessages} />
+                {unreadMessages > 0 && <NotificationBadge count={unreadMessages} />}
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                 <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
