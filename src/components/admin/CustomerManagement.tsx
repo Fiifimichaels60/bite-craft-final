@@ -278,7 +278,6 @@ const CustomerManagement = () => {
           ) : (
             <div className="overflow-x-auto">
               <Table>
-              <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Customer</TableHead>
@@ -449,7 +448,6 @@ const CustomerManagement = () => {
                   ))}
                 </TableBody>
               </Table>
-            </div>
             </div>
           )}
         </CardContent>
