@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -20,7 +22,9 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  Trash
 } from "lucide-react";
 import { 
   Table, 
@@ -83,6 +87,7 @@ interface Order {
 const OrderManagement = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState("all");
@@ -280,6 +285,75 @@ const OrderManagement = () => {
     }
   };
 
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from('nana_orders')
+        .delete()
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Order deleted successfully",
+      });
+
+      fetchOrders();
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete order",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedOrders.length === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from('nana_orders')
+        .delete()
+        .in('id', selectedOrders);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${selectedOrders.length} orders deleted successfully`,
+      });
+
+      setSelectedOrders([]);
+      fetchOrders();
+    } catch (error) {
+      console.error('Error deleting orders:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete orders",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedOrders(filteredOrders.map(order => order.id));
+    } else {
+      setSelectedOrders([]);
+    }
+  };
+
+  const handleSelectOrder = (orderId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedOrders([...selectedOrders, orderId]);
+    } else {
+      setSelectedOrders(selectedOrders.filter(id => id !== orderId));
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
@@ -382,6 +456,28 @@ const OrderManagement = () => {
         <CardHeader>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex items-center gap-4 flex-1">
+              {selectedOrders.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash className="w-4 h-4 mr-2" />
+                      Delete Selected ({selectedOrders.length})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Selected Orders</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete {selectedOrders.length} orders? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleBulkDelete}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
               <DownloadActions type="orders" />
             </div>
             <div className="flex items-center gap-4 flex-1">
@@ -442,19 +538,31 @@ const OrderManagement = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-8 sm:w-12">
+                      <Checkbox
+                        checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>Order</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead className="hidden sm:table-cell">Items</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="hidden md:table-cell">Payment</TableHead>
-                    <TableHead className="hidden lg:table-cell">Date</TableHead>
+                    <TableHead className="hidden lg:table-cell">Date & Time</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.map((order) => (
                     <TableRow key={order.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedOrders.includes(order.id)}
+                          onCheckedChange={(checked) => handleSelectOrder(order.id, checked as boolean)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div>
                           <div className="font-medium text-sm">#{order.id.slice(0, 8)}</div>
@@ -511,21 +619,196 @@ const OrderManagement = () => {
                       <TableCell className="hidden lg:table-cell">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="w-3 h-3" />
-                          {new Date(order.created_at).toLocaleDateString()}
+                          <div>
+                            <div>{new Date(order.created_at).toLocaleDateString()}</div>
+                            <div className="text-xs">{new Date(order.created_at).toLocaleTimeString()}</div>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedOrder(order)}
-                            >
-                              <Eye className="w-4 h-4 sm:mr-2" />
-                              <span className="hidden sm:inline">View</span>
-                            </Button>
-                          </DialogTrigger>
+                        <div className="flex gap-1">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedOrder(order)}
+                              >
+                                <Eye className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">View</span>
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Order Details</DialogTitle>
+                                <DialogDescription>
+                                  Complete information for order #{selectedOrder?.id.slice(0, 8)}
+                                </DialogDescription>
+                              </DialogHeader>
+                              
+                              {selectedOrder && (
+                                <div className="space-y-6">
+                                  {/* Order Summary */}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+                                    <div>
+                                      <h4 className="font-semibold mb-2">Order Information</h4>
+                                      <div className="space-y-2 text-sm">
+                                        <p><span className="font-medium">Order ID:</span> {selectedOrder.id}</p>
+                                        <p><span className="font-medium">Type:</span> {selectedOrder.order_type}</p>
+                                        <p><span className="font-medium">Status:</span> {getStatusBadge(selectedOrder.status)}</p>
+                                        <p><span className="font-medium">Payment:</span> {getPaymentBadge(selectedOrder.payment_status)}</p>
+                                        <p><span className="font-medium">Reference:</span> {selectedOrder.payment_reference || 'N/A'}</p>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold mb-2">Customer Information</h4>
+                                      <div className="space-y-2 text-sm">
+                                        <p><span className="font-medium">Name:</span> {selectedOrder.customer.name}</p>
+                                        <p><span className="font-medium">Phone:</span> {selectedOrder.customer.phone}</p>
+                                        {selectedOrder.customer.email && (
+                                          <p><span className="font-medium">Email:</span> {selectedOrder.customer.email}</p>
+                                        )}
+                                        {selectedOrder.delivery_address && (
+                                          <p><span className="font-medium">Delivery Address:</span> {selectedOrder.delivery_address}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Order Items */}
+                                  <div>
+                                    <h4 className="font-semibold mb-4">Order Items</h4>
+                                    <div className="space-y-3">
+                                      {selectedOrder.order_items.map((item) => (
+                                        <div key={item.id} className="flex justify-between items-center p-3 border rounded">
+                                          <div>
+                                            <h5 className="font-medium">{item.food.name}</h5>
+                                            {item.food.description && (
+                                              <p className="text-sm text-muted-foreground">{item.food.description}</p>
+                                            )}
+                                            <p className="text-sm">
+                                              {item.quantity} × GH₵{item.unit_price.toFixed(2)}
+                                            </p>
+                                          </div>
+                                          <div className="text-right">
+                                            <p className="font-medium">GH₵{item.total_price.toFixed(2)}</p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Order Total */}
+                                  <div className="border-t pt-4">
+                                    <div className="space-y-2">
+                                      <div className="flex justify-between">
+                                        <span>Subtotal:</span>
+                                        <span>GH₵{selectedOrder.total_amount.toFixed(2)}</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>Delivery Fee:</span>
+                                        <span>GH₵{selectedOrder.delivery_fee.toFixed(2)}</span>
+                                      </div>
+                                      <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                                        <span>Total:</span>
+                                        <span>GH₵{(Number(selectedOrder.total_amount) + Number(selectedOrder.delivery_fee)).toFixed(2)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Status Update */}
+                                  <div className="space-y-4">
+                                    <h4 className="font-semibold">Update Order Status</h4>
+                                    <div className="flex gap-2 flex-wrap">
+                                      {['confirmed', 'preparing', 'ready', 'delivered', 'rejected'].map((status) => (
+                                        <Button
+                                          key={status}
+                                          variant={selectedOrder.status === status ? "default" : "outline"}
+                                          size="sm"
+                                          onClick={() => updateOrderStatus(selectedOrder.id, status)}
+                                          disabled={selectedOrder.status === status}
+                                        >
+                                          {getStatusIcon(status)}
+                                          <span className="ml-1 capitalize">{status}</span>
+                                        </Button>
+                                      ))}
+                                    </div>
+                                   </div>
+
+                                   {/* Payment Status Update */}
+                                   {selectedOrder.payment_status === 'pending' && (
+                                     <div className="space-y-4">
+                                       <h4 className="font-semibold">Payment Actions</h4>
+                                       <Button
+                                         onClick={() => markAsPaid(selectedOrder.id)}
+                                         className="bg-green-600 hover:bg-green-700"
+                                       >
+                                         <CreditCard className="w-4 h-4 mr-2" />
+                                         Mark as Paid & Confirm Order
+                                       </Button>
+                                     </div>
+                                   )}
+
+                                   {/* Notes */}
+                                  {selectedOrder.notes && (
+                                    <div>
+                                      <h4 className="font-semibold mb-2">Order Notes</h4>
+                                      <p className="text-sm p-3 bg-muted rounded">{selectedOrder.notes}</p>
+                                    </div>
+                                  )}
+
+                                  {/* Timestamps */}
+                                  <div className="text-xs text-muted-foreground space-y-1">
+                                    <p>Created: {new Date(selectedOrder.created_at).toLocaleString()}</p>
+                                    <p>Updated: {new Date(selectedOrder.updated_at).toLocaleString()}</p>
+                                    {selectedOrder.delivered_at && (
+                                      <p>Delivered: {new Date(selectedOrder.delivered_at).toLocaleString()}</p>
+                                    )}
+                                    {selectedOrder.rejected_at && (
+                                      <p>Rejected: {new Date(selectedOrder.rejected_at).toLocaleString()}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Order</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete order #{order.id.slice(0, 8)}? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteOrder(order.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default OrderManagement;
                           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                             <DialogHeader>
                               <DialogTitle>Order Details</DialogTitle>

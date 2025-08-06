@@ -47,10 +47,6 @@ function AdminDashboardContent() {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalCustomers, setTotalCustomers] = useState(0);
   
-  // Notification states
-  const [unreadMessages, setUnreadMessages] = useState(0);
-  const [pendingOrders, setPendingOrders] = useState(0);
-  const [newCustomers, setNewCustomers] = useState(0);
   const [activeTab, setActiveTab] = useState("overview");
 
   // Auto logout after 30 minutes of inactivity
@@ -69,82 +65,8 @@ function AdminDashboardContent() {
 
   useEffect(() => {
     fetchOverviewData();
-    fetchNotificationCounts();
-    
-    // Set up real-time subscriptions for notifications
-    const ordersChannel = supabase
-      .channel('admin-orders-notifications')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'nana_orders' },
-        () => fetchNotificationCounts()
-      )
-      .subscribe();
-
-    const messagesChannel = supabase
-      .channel('admin-messages-notifications')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'nana_chat_messages' },
-        () => fetchNotificationCounts()
-      )
-      .subscribe();
-
-    const customersChannel = supabase
-      .channel('admin-customers-notifications')
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'nana_customers' },
-        () => fetchNotificationCounts()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(ordersChannel);
-      supabase.removeChannel(messagesChannel);
-      supabase.removeChannel(customersChannel);
-    };
   }, []);
 
-  const fetchNotificationCounts = async () => {
-    try {
-      // Unread messages count
-      const { count: messagesCount } = await supabase
-        .from('nana_chat_messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('sender_type', 'customer')
-        .eq('is_read', false);
-
-      // Pending orders count
-      const { count: ordersCount } = await supabase
-        .from('nana_orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      // New customers (last 24 hours)
-      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const { count: customersCount } = await supabase
-        .from('nana_customers')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', yesterday.toISOString());
-
-      setUnreadMessages(messagesCount || 0);
-      setPendingOrders(ordersCount || 0);
-      setNewCustomers(customersCount || 0);
-    } catch (error) {
-      console.error('Error fetching notification counts:', error);
-    }
-  };
-
-  const clearNotifications = (tabName: string) => {
-    setActiveTab(tabName);
-    
-    // Clear relevant notifications when tab is opened
-    if (tabName === 'chat') {
-      setUnreadMessages(0);
-    } else if (tabName === 'orders') {
-      setPendingOrders(0);
-    } else if (tabName === 'customers') {
-      setNewCustomers(0);
-    }
-  };
   const fetchOverviewData = async () => {
     try {
       // Fetch total orders
@@ -228,7 +150,7 @@ function AdminDashboardContent() {
       </div>
 
       <div className="container mx-auto px-4 py-4 sm:py-8">
-        <Tabs value={activeTab} onValueChange={clearNotifications} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="overflow-x-auto">
             <TabsList className="grid w-full grid-cols-7 min-w-[600px]">
               <TabsTrigger value="overview" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
@@ -246,23 +168,20 @@ function AdminDashboardContent() {
                 <span className="hidden sm:inline">Foods</span>
                 <span className="sm:hidden">Food</span>
               </TabsTrigger>
-              <TabsTrigger value="orders" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm relative">
+              <TabsTrigger value="orders" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                 <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Orders</span>
                 <span className="sm:hidden">Orders</span>
-                <NotificationBadge count={pendingOrders} />
               </TabsTrigger>
-              <TabsTrigger value="customers" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm relative">
+              <TabsTrigger value="customers" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                 <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Customers</span>
                 <span className="sm:hidden">Users</span>
-                {newCustomers > 0 && <NotificationBadge count={newCustomers} />}
               </TabsTrigger>
-              <TabsTrigger value="chat" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm relative">
+              <TabsTrigger value="chat" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                 <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Chat</span>
                 <span className="sm:hidden">Chat</span>
-                {unreadMessages > 0 && <NotificationBadge count={unreadMessages} />}
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                 <Settings className="w-3 h-3 sm:w-4 sm:h-4" />

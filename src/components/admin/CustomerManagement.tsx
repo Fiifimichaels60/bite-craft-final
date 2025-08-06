@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -14,7 +16,9 @@ import {
   Calendar,
   MessageCircle,
   Eye,
-  Filter
+  Filter,
+  Trash2,
+  Trash
 } from "lucide-react";
 import { 
   Table, 
@@ -75,6 +79,7 @@ interface CustomerOrder {
 const CustomerManagement = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -168,6 +173,75 @@ const CustomerManagement = () => {
     fetchCustomerOrders(customer.id);
   };
 
+  const handleDeleteCustomer = async (customerId: string) => {
+    try {
+      const { error } = await supabase
+        .from('nana_customers')
+        .delete()
+        .eq('id', customerId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Customer deleted successfully",
+      });
+
+      fetchCustomers();
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete customer",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedCustomers.length === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from('nana_customers')
+        .delete()
+        .in('id', selectedCustomers);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${selectedCustomers.length} customers deleted successfully`,
+      });
+
+      setSelectedCustomers([]);
+      fetchCustomers();
+    } catch (error) {
+      console.error('Error deleting customers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete customers",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedCustomers(sortedCustomers.map(customer => customer.id));
+    } else {
+      setSelectedCustomers([]);
+    }
+  };
+
+  const handleSelectCustomer = (customerId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCustomers([...selectedCustomers, customerId]);
+    } else {
+      setSelectedCustomers(selectedCustomers.filter(id => id !== customerId));
+    }
+  };
+
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.phone.includes(searchTerm) ||
@@ -238,6 +312,28 @@ const CustomerManagement = () => {
         <CardHeader>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex items-center gap-4 flex-1">
+              {selectedCustomers.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash className="w-4 h-4 mr-2" />
+                      Delete Selected ({selectedCustomers.length})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Selected Customers</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete {selectedCustomers.length} customers? This action cannot be undone and will also delete their order history.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleBulkDelete}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
               <DownloadActions type="customers" />
             </div>
             <div className="flex items-center gap-4 flex-1">
@@ -281,6 +377,12 @@ const CustomerManagement = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-8 sm:w-12">
+                      <Checkbox
+                        checked={selectedCustomers.length === sortedCustomers.length && sortedCustomers.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead className="hidden sm:table-cell">Orders</TableHead>
@@ -292,6 +394,12 @@ const CustomerManagement = () => {
                 <TableBody>
                   {sortedCustomers.map((customer) => (
                     <TableRow key={customer.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedCustomers.includes(customer.id)}
+                          onCheckedChange={(checked) => handleSelectCustomer(customer.id, checked as boolean)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div>
                           <div className="font-medium">{customer.name}</div>
@@ -339,17 +447,135 @@ const CustomerManagement = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewCustomer(customer)}
-                            >
-                              <Eye className="w-4 h-4 sm:mr-2" />
-                              <span className="hidden sm:inline">View Details</span>
-                            </Button>
-                          </DialogTrigger>
+                        <div className="flex gap-1">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewCustomer(customer)}
+                              >
+                                <Eye className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">View Details</span>
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Customer Details</DialogTitle>
+                                <DialogDescription>
+                                  Complete information and order history for {selectedCustomer?.name}
+                                </DialogDescription>
+                              </DialogHeader>
+                              
+                              {selectedCustomer && (
+                                <div className="space-y-6">
+                                  {/* Customer Info */}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+                                    <div>
+                                      <h4 className="font-semibold mb-2">Personal Information</h4>
+                                      <div className="space-y-2 text-sm">
+                                        <p><span className="font-medium">Name:</span> {selectedCustomer.name}</p>
+                                        <p><span className="font-medium">Phone:</span> {selectedCustomer.phone}</p>
+                                        {selectedCustomer.email && (
+                                          <p><span className="font-medium">Email:</span> {selectedCustomer.email}</p>
+                                        )}
+                                        {selectedCustomer.national_id && (
+                                          <p><span className="font-medium">National ID:</span> {selectedCustomer.national_id}</p>
+                                        )}
+                                        {selectedCustomer.address && (
+                                          <p><span className="font-medium">Address:</span> {selectedCustomer.address}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold mb-2">Statistics</h4>
+                                      <div className="space-y-2 text-sm">
+                                        <p><span className="font-medium">Total Orders:</span> {selectedCustomer.total_orders}</p>
+                                        <p><span className="font-medium">Total Spent:</span> GH₵{selectedCustomer.total_spent?.toFixed(2)}</p>
+                                        <p><span className="font-medium">Member Since:</span> {new Date(selectedCustomer.created_at).toLocaleDateString()}</p>
+                                        <p><span className="font-medium">Last Updated:</span> {new Date(selectedCustomer.updated_at).toLocaleDateString()}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Order History */}
+                                  <div>
+                                    <h4 className="font-semibold mb-4">Order History</h4>
+                                    {customerOrders.length === 0 ? (
+                                      <p className="text-muted-foreground text-center py-4">No orders found</p>
+                                    ) : (
+                                      <div className="space-y-4">
+                                        {customerOrders.map((order) => (
+                                          <div key={order.id} className="border rounded-lg p-4">
+                                            <div className="flex justify-between items-start mb-3">
+                                              <div>
+                                                <h5 className="font-medium">Order #{order.id.slice(0, 8)}</h5>
+                                                <p className="text-sm text-muted-foreground">
+                                                  {new Date(order.created_at).toLocaleString()}
+                                                </p>
+                                              </div>
+                                              <div className="text-right">
+                                                {getStatusBadge(order.status)}
+                                                <p className="text-sm font-medium mt-1">
+                                                  GH₵{(Number(order.total_amount) + Number(order.delivery_fee)).toFixed(2)}
+                                                </p>
+                                              </div>
+                                            </div>
+                                            
+                                            <div className="space-y-2">
+                                              {order.order_items.map((item, index) => (
+                                                <div key={index} className="flex justify-between text-sm">
+                                                  <span>{item.quantity}× {item.food.name}</span>
+                                                  <span>GH₵{item.total_price.toFixed(2)}</span>
+                                                </div>
+                                              ))}
+                                              <div className="border-t pt-2 text-sm">
+                                                <div className="flex justify-between">
+                                                  <span>Subtotal:</span>
+                                                  <span>GH₵{order.total_amount.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                  <span>Delivery:</span>
+                                                  <span>GH₵{order.delivery_fee.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between font-medium">
+                                                  <span>Total:</span>
+                                                  <span>GH₵{(Number(order.total_amount) + Number(order.delivery_fee)).toFixed(2)}</span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Customer</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete {customer.name}? This action cannot be undone and will also delete their order history.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteCustomer(customer.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                             <DialogHeader>
                               <DialogTitle>Customer Details</DialogTitle>
@@ -455,6 +681,75 @@ const CustomerManagement = () => {
       </Card>
     </div>
   );
+};
+
+const handleDeleteCustomer = async (customerId: string) => {
+  try {
+    const { error } = await supabase
+      .from('nana_customers')
+      .delete()
+      .eq('id', customerId);
+
+    if (error) throw error;
+
+    toast({
+      title: "Success",
+      description: "Customer deleted successfully",
+    });
+
+    fetchCustomers();
+  } catch (error) {
+    console.error('Error deleting customer:', error);
+    toast({
+      title: "Error",
+      description: "Failed to delete customer",
+      variant: "destructive",
+    });
+  }
+};
+
+const handleBulkDelete = async () => {
+  if (selectedCustomers.length === 0) return;
+
+  try {
+    const { error } = await supabase
+      .from('nana_customers')
+      .delete()
+      .in('id', selectedCustomers);
+
+    if (error) throw error;
+
+    toast({
+      title: "Success",
+      description: `${selectedCustomers.length} customers deleted successfully`,
+    });
+
+    setSelectedCustomers([]);
+    fetchCustomers();
+  } catch (error) {
+    console.error('Error deleting customers:', error);
+    toast({
+      title: "Error",
+      description: "Failed to delete customers",
+      variant: "destructive",
+    });
+  }
+};
+
+const handleSelectAll = (checked: boolean) => {
+  if (checked) {
+    setSelectedCustomers(sortedCustomers.map(customer => customer.id));
+  } else {
+    setSelectedCustomers([]);
+  }
+};
+
+const handleSelectCustomer = (customerId: string, checked: boolean) => {
+  if (checked) {
+    setSelectedCustomers([...selectedCustomers, customerId]);
+  } else {
+    setSelectedCustomers(selectedCustomers.filter(id => id !== customerId));
+  }
 };
 
 export default CustomerManagement;
