@@ -40,7 +40,6 @@ export default function BusinessSettings() {
         description: "Paystack configuration updated successfully",
       });
 
-      fetchBusinessSettings();
     } catch (error) {
       console.error("Error updating Paystack settings:", error);
       toast({
@@ -49,6 +48,7 @@ export default function BusinessSettings() {
         variant: "destructive",
       });
     } finally {
+      setSaving(false);
     }
   };
 

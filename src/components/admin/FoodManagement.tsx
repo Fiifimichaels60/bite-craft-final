@@ -352,6 +352,7 @@ export default function FoodManagement() {
                 </DialogDescription>
               </DialogHeader>
               
+            <div className="max-h-[60vh] overflow-y-auto pr-2">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="image_url">Image URL</Label>
@@ -370,7 +371,7 @@ export default function FoodManagement() {
                     <img 
                       src={formData.image_url} 
                       alt="Preview" 
-                      className="w-full h-32 object-cover rounded-md"
+                      className="w-full h-24 object-cover rounded-md"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
                       }}
@@ -470,6 +471,7 @@ export default function FoodManagement() {
                   </Button>
                 </div>
               </form>
+            </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -522,7 +524,7 @@ export default function FoodManagement() {
                           <img 
                             src={food.image_url} 
                             alt={food.name}
-                            className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded-md"
+                            className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded-md flex-shrink-0"
                             onError={(e) => {
                               e.currentTarget.src = '/placeholder.svg';
                             }}

@@ -301,7 +301,7 @@ export const Cart = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
                       <img
                         src={item.image_url || "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=60&h=60&fit=crop"}
                         alt={item.name}
-                        className="w-12 h-12 rounded object-cover"
+                        className="w-12 h-12 rounded object-cover flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium truncate">{item.name}</h4>
