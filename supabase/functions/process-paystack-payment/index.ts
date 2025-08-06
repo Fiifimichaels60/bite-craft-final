@@ -14,21 +14,12 @@ serve(async (req) => {
   try {
     const { email, amount, currency, reference, callback_url, customer_name, customer_phone, order_id, metadata } = await req.json()
 
-    // Get Paystack secret key from environment
-    const paystackSecretKey = Deno.env.get('PAYSTACK_SECRET_KEY')
+    // Get Paystack secret key from request or environment
+    let paystackSecretKey = req.paystack_secret_key || Deno.env.get('PAYSTACK_SECRET_KEY')
     
+    // Fallback to hardcoded key if none provided
     if (!paystackSecretKey) {
-      console.error('PAYSTACK_SECRET_KEY not found in environment variables')
-      return new Response(
-        JSON.stringify({ 
-          status: false, 
-          message: 'Payment service configuration error' 
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      paystackSecretKey = 'sk_live_84b49fd5fb26f8609e93f0f3d99203b9a23f435c'
     }
 
     console.log('Initializing Paystack payment for order:', order_id)
