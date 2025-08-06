@@ -178,6 +178,12 @@ export const Cart = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
 
       // Process payment with Paystack via Edge Function
       try {
+        // Get Paystack configuration from business settings
+        const { data: businessSettings } = await supabase
+          .from('nana_business_settings')
+          .select('paystack_public_key, paystack_secret_key')
+          .single();
+
         const paymentData = {
           email: customerInfo.email || `${customerInfo.phone}@bitecraft.com`,
           amount: Math.round(total * 100), // Convert to pesewas
@@ -187,6 +193,7 @@ export const Cart = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
           customer_name: customerInfo.name,
           customer_phone: customerInfo.phone,
           order_id: orderData.id,
+          paystack_secret_key: businessSettings?.paystack_secret_key,
           metadata: {
             customer_name: customerInfo.name,
             customer_phone: customerInfo.phone,

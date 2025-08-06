@@ -14,6 +14,7 @@ import { ThemeProvider, useTheme } from "@/components/ui/theme-provider";
 import { NotificationBadge } from "@/components/admin/NotificationBadge";
 import GrowthMetrics from "@/components/admin/GrowthMetrics";
 import SuperAdminSettings from "@/components/admin/SuperAdminSettings";
+import BusinessSettings from "@/components/admin/BusinessSettings";
 import FoodManagement from "@/components/admin/FoodManagement";
 import CategoryManagement from "@/components/admin/CategoryManagement";
 import CustomerManagement from "@/components/admin/CustomerManagement";
@@ -360,44 +361,7 @@ function AdminDashboardContent() {
               
               <SuperAdminSettings />
               
-              <Card>
-                <CardHeader>
-                  <CardTitle>Business Information</CardTitle>
-                  <CardDescription>
-                    Update your business contact information
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="business-phone">Business Phone</Label>
-                      <Input
-                        id="business-phone"
-                        defaultValue="+233 243 762 748"
-                        placeholder="Business phone number"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="business-email">Business Email</Label>
-                      <Input
-                        id="business-email"
-                        type="email"
-                        defaultValue="michaelquaicoe60@gmail.com"
-                        placeholder="Business email address"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="business-address">Business Address</Label>
-                    <Textarea
-                      id="business-address"
-                      placeholder="Enter your business address"
-                      rows={3}
-                    />
-                  </div>
-                  <Button className="w-full">Update Business Information</Button>
-                </CardContent>
-              </Card>
+              <BusinessSettings />
             </div>
           </TabsContent>
         </Tabs>
