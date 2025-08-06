@@ -11,10 +11,12 @@ import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { useNavigate } from "react-router-dom";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import { ThemeProvider, useTheme } from "@/components/ui/theme-provider";
-import { NotificationBadge } from "@/components/admin/NotificationBadge";
 import GrowthMetrics from "@/components/admin/GrowthMetrics";
 import SuperAdminSettings from "@/components/admin/SuperAdminSettings";
 import BusinessSettings from "@/components/admin/BusinessSettings";
+import SystemPerformance from "@/components/admin/SystemPerformance";
+import QuickActions from "@/components/admin/QuickActions";
+import RecentActivity from "@/components/admin/RecentActivity";
 import FoodManagement from "@/components/admin/FoodManagement";
 import CategoryManagement from "@/components/admin/CategoryManagement";
 import CustomerManagement from "@/components/admin/CustomerManagement";
@@ -32,7 +34,8 @@ import {
   Sun,
   Monitor,
   MessageCircle,
-  Bell
+  Activity,
+  Zap
 } from "lucide-react";
 
 function AdminDashboardContent() {
@@ -252,6 +255,12 @@ function AdminDashboardContent() {
             
             {/* Growth Metrics */}
             <GrowthMetrics />
+            
+            {/* Quick Actions and Recent Activity */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <QuickActions />
+              <RecentActivity />
+            </div>
           </TabsContent>
 
           <TabsContent value="categories" className="space-y-6">
@@ -281,6 +290,8 @@ function AdminDashboardContent() {
               <SuperAdminSettings />
               
               <BusinessSettings />
+              
+              <SystemPerformance />
             </div>
           </TabsContent>
         </Tabs>

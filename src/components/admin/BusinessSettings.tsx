@@ -3,17 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Save, Building, Eye, EyeOff, CreditCard } from "lucide-react";
+import { Save, Eye, EyeOff, CreditCard } from "lucide-react";
 
 interface BusinessSettings {
   id: string;
-  business_name: string;
-  business_phone: string;
-  business_email: string;
-  business_address: string | null;
   paystack_public_key: string | null;
   paystack_secret_key: string | null;
 }
@@ -24,10 +19,6 @@ export default function BusinessSettings() {
   const [saving, setSaving] = useState(false);
   const [showSecretKey, setShowSecretKey] = useState(false);
   const [formData, setFormData] = useState({
-    business_name: "",
-    business_phone: "",
-    business_email: "",
-    business_address: "",
     paystack_public_key: "",
     paystack_secret_key: ""
   });
@@ -51,10 +42,6 @@ export default function BusinessSettings() {
       if (data) {
         setSettings(data);
         setFormData({
-          business_name: data.business_name || "",
-          business_phone: data.business_phone || "",
-          business_email: data.business_email || "",
-          business_address: data.business_address || "",
           paystack_public_key: data.paystack_public_key || "",
           paystack_secret_key: data.paystack_secret_key || ""
         });
@@ -68,52 +55,6 @@ export default function BusinessSettings() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSaveBusinessInfo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-
-    try {
-      const businessData = {
-        business_name: formData.business_name,
-        business_phone: formData.business_phone,
-        business_email: formData.business_email,
-        business_address: formData.business_address || null,
-        updated_at: new Date().toISOString()
-      };
-
-      if (settings) {
-        const { error } = await supabase
-          .from("nana_business_settings")
-          .update(businessData)
-          .eq("id", settings.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("nana_business_settings")
-          .insert([businessData]);
-
-        if (error) throw error;
-      }
-
-      toast({
-        title: "Success",
-        description: "Business information updated successfully",
-      });
-
-      fetchBusinessSettings();
-    } catch (error) {
-      console.error("Error updating business settings:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update business information",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -174,70 +115,6 @@ export default function BusinessSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Business Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            Business Information
-          </CardTitle>
-          <CardDescription>
-            Update your business contact information and details
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSaveBusinessInfo} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="business-name">Business Name</Label>
-                <Input
-                  id="business-name"
-                  value={formData.business_name}
-                  onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
-                  placeholder="Your business name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="business-phone">Business Phone</Label>
-                <Input
-                  id="business-phone"
-                  value={formData.business_phone}
-                  onChange={(e) => setFormData({ ...formData, business_phone: e.target.value })}
-                  placeholder="Business phone number"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="business-email">Business Email</Label>
-              <Input
-                id="business-email"
-                type="email"
-                value={formData.business_email}
-                onChange={(e) => setFormData({ ...formData, business_email: e.target.value })}
-                placeholder="Business email address"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="business-address">Business Address</Label>
-              <Textarea
-                id="business-address"
-                value={formData.business_address}
-                onChange={(e) => setFormData({ ...formData, business_address: e.target.value })}
-                placeholder="Enter your business address"
-                rows={3}
-              />
-            </div>
-            
-            <Button type="submit" disabled={saving} className="w-full">
-              <Save className="h-4 w-4 mr-2" />
-              {saving ? "Updating..." : "Update Business Information"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
       {/* Paystack Configuration */}
       <Card>
         <CardHeader>
