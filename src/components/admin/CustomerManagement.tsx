@@ -39,7 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import DownloadActions from "./DownloadActions";
+import { DownloadActions } from "./DownloadActions";
 
 interface Customer {
   id: string;

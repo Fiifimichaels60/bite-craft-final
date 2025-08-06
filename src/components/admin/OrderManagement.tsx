@@ -45,6 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DownloadActions } from "./DownloadActions";
 
 interface Order {
   id: string;
