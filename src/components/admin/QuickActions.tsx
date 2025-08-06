@@ -252,4 +252,4 @@ const QuickActions = () => {
   );
 };
 
-export default SystemPerformance;
+export default QuickActions;
