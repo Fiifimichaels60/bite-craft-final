@@ -175,6 +175,41 @@ const CustomerManagement = () => {
 
   const handleDeleteCustomer = async (customerId: string) => {
     try {
+      // First, delete all related records in the correct order
+      
+      // Delete chat messages for this customer
+      await supabase
+        .from('nana_chat_messages')
+        .delete()
+        .eq('sender_id', customerId);
+
+      // Delete chats for this customer
+      await supabase
+        .from('nana_chats')
+        .delete()
+        .eq('customer_id', customerId);
+
+      // Delete order items for orders belonging to this customer
+      const { data: customerOrders } = await supabase
+        .from('nana_orders')
+        .select('id')
+        .eq('customer_id', customerId);
+
+      if (customerOrders && customerOrders.length > 0) {
+        const orderIds = customerOrders.map(order => order.id);
+        await supabase
+          .from('nana_order_items')
+          .delete()
+          .in('order_id', orderIds);
+      }
+
+      // Delete orders for this customer
+      await supabase
+        .from('nana_orders')
+        .delete()
+        .eq('customer_id', customerId);
+
+      // Finally, delete the customer
       const { error } = await supabase
         .from('nana_customers')
         .delete()
@@ -192,7 +227,7 @@ const CustomerManagement = () => {
       console.error('Error deleting customer:', error);
       toast({
         title: "Error",
-        description: "Failed to delete customer",
+        description: `Failed to delete customer: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     }
@@ -202,6 +237,42 @@ const CustomerManagement = () => {
     if (selectedCustomers.length === 0) return;
 
     try {
+      // Delete related records for all selected customers
+      for (const customerId of selectedCustomers) {
+        // Delete chat messages
+        await supabase
+          .from('nana_chat_messages')
+          .delete()
+          .eq('sender_id', customerId);
+
+        // Delete chats
+        await supabase
+          .from('nana_chats')
+          .delete()
+          .eq('customer_id', customerId);
+
+        // Get and delete order items
+        const { data: customerOrders } = await supabase
+          .from('nana_orders')
+          .select('id')
+          .eq('customer_id', customerId);
+
+        if (customerOrders && customerOrders.length > 0) {
+          const orderIds = customerOrders.map(order => order.id);
+          await supabase
+            .from('nana_order_items')
+            .delete()
+            .in('order_id', orderIds);
+        }
+
+        // Delete orders
+        await supabase
+          .from('nana_orders')
+          .delete()
+          .eq('customer_id', customerId);
+      }
+
+      // Finally delete all customers
       const { error } = await supabase
         .from('nana_customers')
         .delete()
@@ -220,7 +291,7 @@ const CustomerManagement = () => {
       console.error('Error deleting customers:', error);
       toast({
         title: "Error",
-        description: "Failed to delete customers",
+        description: `Failed to delete customers: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     }
