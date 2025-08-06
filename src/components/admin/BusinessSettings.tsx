@@ -7,14 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Save, Eye, EyeOff, CreditCard } from "lucide-react";
 
-interface BusinessSettings {
-  id: string;
-  paystack_public_key: string | null;
-  paystack_secret_key: string | null;
-}
-
 export default function BusinessSettings() {
-  const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showSecretKey, setShowSecretKey] = useState(false);
@@ -25,38 +18,8 @@ export default function BusinessSettings() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchBusinessSettings();
+    setLoading(false);
   }, []);
-
-  const fetchBusinessSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("nana_business_settings")
-        .select("*")
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      if (data) {
-        setSettings(data);
-        setFormData({
-          paystack_public_key: data.paystack_public_key || "",
-          paystack_secret_key: data.paystack_secret_key || ""
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching business settings:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch business settings",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSavePaystackConfig = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,20 +32,8 @@ export default function BusinessSettings() {
         updated_at: new Date().toISOString()
       };
 
-      if (settings) {
-        const { error } = await supabase
-          .from("nana_business_settings")
-          .update(paystackData)
-          .eq("id", settings.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("nana_business_settings")
-          .insert([paystackData]);
-
-        if (error) throw error;
-      }
+      // For now, just store in localStorage until business settings table is properly configured
+      localStorage.setItem('paystack_config', JSON.stringify(paystackData));
 
       toast({
         title: "Success",
@@ -98,7 +49,6 @@ export default function BusinessSettings() {
         variant: "destructive",
       });
     } finally {
-      setSaving(false);
     }
   };
 
