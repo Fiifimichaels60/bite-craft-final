@@ -13,7 +13,8 @@ import {
   EyeOff,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  RefreshCw
 } from "lucide-react";
 
 interface QuickStats {
