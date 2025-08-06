@@ -358,9 +358,7 @@ function AdminDashboardContent() {
             <div className="space-y-6">
               <h2 className="text-lg sm:text-xl font-semibold">Settings</h2>
               
-              {admin?.role === 'super_admin' && (
-                <SuperAdminSettings />
-              )}
+              <SuperAdminSettings />
               
               <Card>
                 <CardHeader>

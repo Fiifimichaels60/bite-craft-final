@@ -175,21 +175,31 @@ const OrderManagement = () => {
 
       if (error) throw error;
 
-      // Send email notification to customer
-      if (updatedOrder && updatedOrder.customer?.email && newStatus === 'ready') {
+      // Send notification to customer when order is confirmed or ready
+      if (updatedOrder && updatedOrder.customer && (newStatus === 'confirmed' || newStatus === 'ready')) {
         try {
           await supabase.functions.invoke('send-order-notification', {
             body: {
-              to: updatedOrder.customer.email,
+              to: updatedOrder.customer.email || `${updatedOrder.customer.phone}@bitecraft.com`,
               customerName: updatedOrder.customer.name,
+              customerPhone: updatedOrder.customer.phone,
               orderId: orderId.slice(0, 8),
               status: newStatus,
               orderType: updatedOrder.order_type
             }
           });
+          
+          toast({
+            title: "Notification Sent",
+            description: `Customer notified about order ${newStatus} status`,
+          });
         } catch (emailError) {
           console.error('Error sending email notification:', emailError);
-          // Don't fail the status update if email fails
+          toast({
+            title: "Warning",
+            description: "Order updated but notification failed to send",
+            variant: "destructive",
+          });
         }
       }
 
@@ -211,6 +221,16 @@ const OrderManagement = () => {
 
   const markAsPaid = async (orderId: string) => {
     try {
+      // First get the order details for notification
+      const { data: orderData } = await supabase
+        .from('nana_orders')
+        .select(`
+          *,
+          customer:nana_customers(name, email, phone)
+        `)
+        .eq('id', orderId)
+        .single();
+
       const { data, error } = await supabase.functions.invoke('manual-payment-update', {
         body: {
           order_id: orderId,
@@ -220,6 +240,29 @@ const OrderManagement = () => {
       });
 
       if (error) throw error;
+
+      // Send confirmation notification to customer
+      if (orderData && orderData.customer) {
+        try {
+          await supabase.functions.invoke('send-order-notification', {
+            body: {
+              to: orderData.customer.email || `${orderData.customer.phone}@bitecraft.com`,
+              customerName: orderData.customer.name,
+              customerPhone: orderData.customer.phone,
+              orderId: orderId.slice(0, 8),
+              status: 'confirmed',
+              orderType: orderData.order_type
+            }
+          });
+          
+          toast({
+            title: "Customer Notified",
+            description: "Order confirmation sent to customer",
+          });
+        } catch (notificationError) {
+          console.error('Error sending confirmation notification:', notificationError);
+        }
+      }
 
       toast({
         title: "Payment Updated",

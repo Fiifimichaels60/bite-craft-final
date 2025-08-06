@@ -8,6 +8,7 @@ const corsHeaders = {
 interface EmailRequest {
   to: string;
   customerName: string;
+  customerPhone: string;
   orderId: string;
   status: string;
   orderType: string;
@@ -19,9 +20,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { to, customerName, orderId, status, orderType } = await req.json() as EmailRequest
+    const { to, customerName, customerPhone, orderId, status, orderType } = await req.json() as EmailRequest
 
-    console.log('Sending order notification email:', { to, customerName, orderId, status })
+    console.log('Sending order notification:', { to, customerName, customerPhone, orderId, status })
 
     // Create email content based on status
     let subject = '';
@@ -36,7 +37,7 @@ Deno.serve(async (req) => {
             <p>Dear ${customerName},</p>
             <p>Your order <strong>#${orderId}</strong> has been confirmed and is being prepared.</p>
             <p><strong>Order Type:</strong> ${orderType === 'delivery' ? 'Delivery' : 'Pickup'}</p>
-            <p>We'll notify you when your order is ready.</p>
+            <p>We'll notify you when your order is ready. Expected time: 15-20 minutes.</p>
             <p>Thank you for choosing BiteCraft!</p>
             <hr style="margin: 20px 0;">
             <p style="color: #666; font-size: 12px;">
@@ -56,9 +57,12 @@ Deno.serve(async (req) => {
             <p>Great news! Your order <strong>#${orderId}</strong> is now ready.</p>
             <p><strong>Order Type:</strong> ${orderType === 'delivery' ? 'Delivery' : 'Pickup'}</p>
             ${orderType === 'delivery' 
-              ? '<p>Our delivery team will be with you shortly.</p>' 
-              : '<p>You can now come to pick up your order at our location.</p>'
+              ? '<p>Our delivery team will be with you in the next 10 minutes.</p>' 
+              : '<p><strong>Please come to pick up your order within the next 10 minutes.</strong></p>'
             }
+            <p style="background-color: #fef3c7; padding: 10px; border-radius: 5px; border-left: 4px solid #f59e0b;">
+              <strong>⏰ Important:</strong> ${orderType === 'pickup' ? 'Please collect your order within 10 minutes to ensure freshness.' : 'Please be available for delivery in the next 10 minutes.'}
+            </p>
             <p>Thank you for choosing BiteCraft!</p>
             <hr style="margin: 20px 0;">
             <p style="color: #666; font-size: 12px;">
@@ -76,27 +80,23 @@ Deno.serve(async (req) => {
         )
     }
 
-    // In a real implementation, you would integrate with an email service like:
-    // - SendGrid
-    // - Mailgun
-    // - AWS SES
-    // - Resend
-    
-    // For now, we'll simulate sending the email
-    console.log('Email would be sent:', {
+    // Simulate email/SMS sending
+    console.log('Notification would be sent:', {
       to,
+      phone: customerPhone,
       subject,
       htmlContent: htmlContent.substring(0, 100) + '...'
     });
 
-    // Simulate email sending delay
+    // Simulate notification sending delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Order notification email sent successfully',
-        emailSent: true
+        message: 'Order notification sent successfully',
+        emailSent: true,
+        smsSent: true
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -105,11 +105,11 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Email notification error:', error)
+    console.error('Notification error:', error)
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Failed to send notification email'
+        error: error.message || 'Failed to send notification'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

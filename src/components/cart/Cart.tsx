@@ -69,18 +69,30 @@ export const Cart = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
       // Check if customer already exists by phone or email
       let customerData;
       
-      const { data: existingCustomers } = await supabase
+      const { data: existingCustomers, error: searchError } = await supabase
         .from('nana_customers')
-        .select('*')
+        .select('id, name, phone, email, national_id, address, created_at, updated_at')
         .or(`phone.eq.${customerInfo.phone}${customerInfo.email ? `,email.eq.${customerInfo.email}` : ''}`)
         .order('created_at', { ascending: false })
         .limit(1);
+
+      if (searchError) {
+        console.error('Error searching for existing customer:', searchError);
+        throw searchError;
+      }
 
       if (existingCustomers && existingCustomers.length > 0) {
         const existingCustomer = existingCustomers[0];
         console.log('Found existing customer:', existingCustomer);
         
-        // Update existing customer with any new information
+        // Update existing customer with any new information (only if different)
+        const needsUpdate = 
+          existingCustomer.name !== customerInfo.name ||
+          (customerInfo.nationalId && existingCustomer.national_id !== customerInfo.nationalId) ||
+          (customerInfo.email && existingCustomer.email !== customerInfo.email) ||
+          (customerInfo.address && existingCustomer.address !== customerInfo.address);
+
+        if (needsUpdate) {
         const { data: updatedCustomer, error: updateError } = await supabase
           .from('nana_customers')
           .update({
@@ -94,12 +106,16 @@ export const Cart = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
           .select()
           .single();
 
-        if (updateError) {
-          console.error('Error updating existing customer:', updateError);
-          throw updateError;
+          if (updateError) {
+            console.error('Error updating existing customer:', updateError);
+            throw updateError;
+          }
+          customerData = updatedCustomer;
+          console.log('Updated existing customer:', customerData);
+        } else {
+          customerData = existingCustomer;
+          console.log('Using existing customer without updates:', customerData);
         }
-        customerData = updatedCustomer;
-        console.log('Updated existing customer:', customerData);
       } else {
         console.log('No existing customer found, creating new one');
         // Create new customer record

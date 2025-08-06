@@ -243,16 +243,17 @@ const SuperAdminSettings = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold">Admin User Management</h3>
-          <p className="text-sm text-muted-foreground">Manage admin accounts and permissions</p>
+          <h3 className="text-base sm:text-lg font-semibold">Admin User Management</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">Manage admin accounts and permissions</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openCreateDialog}>
+            <Button onClick={openCreateDialog} size="sm">
               <UserPlus className="h-4 w-4 mr-2" />
-              Add Admin
+              <span className="hidden sm:inline">Add Admin</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
@@ -346,7 +347,7 @@ const SuperAdminSettings = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Admin Users</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Admin Users</CardTitle>
           <CardDescription>
             {admins.length} admin users registered
           </CardDescription>
@@ -366,7 +367,7 @@ const SuperAdminSettings = () => {
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
+                    <TableHead className="hidden lg:table-cell">Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -376,18 +377,18 @@ const SuperAdminSettings = () => {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <Shield className="w-4 h-4 text-primary" />
-                          {admin.name}
+                          <span className="text-sm">{admin.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{admin.email}</TableCell>
+                      <TableCell className="text-sm">{admin.email}</TableCell>
                       <TableCell>
                         <Badge variant={admin.role === 'super_admin' ? 'default' : 'secondary'}>
-                          {admin.role.replace('_', ' ').toUpperCase()}
+                          <span className="text-xs">{admin.role.replace('_', ' ').toUpperCase()}</span>
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Badge variant={admin.is_active ? "default" : "secondary"}>
+                          <Badge variant={admin.is_active ? "default" : "secondary"} className="text-xs">
                             {admin.is_active ? "Active" : "Inactive"}
                           </Badge>
                           <Switch
@@ -396,11 +397,11 @@ const SuperAdminSettings = () => {
                           />
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">
                         {new Date(admin.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
+                        <div className="flex gap-1 justify-end">
                           <Button
                             variant="ghost"
                             size="sm"
