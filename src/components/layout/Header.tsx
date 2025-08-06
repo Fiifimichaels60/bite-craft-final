@@ -85,9 +85,10 @@ export const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
             <Phone className="h-4 w-4" />
             <a
               href="tel:+233502445560"
-              className="hidden sm:inline hover:underline focus:outline-none focus:ring-2 focus:ring-food-primary"
+              className="hover:underline focus:outline-none focus:ring-2 focus:ring-food-primary"
             >
-              +233 50 244 5560
+              <span className="hidden sm:inline">+233 50 244 5560</span>
+              <span className="sm:hidden">Call</span>
             </a>
           </div>
 

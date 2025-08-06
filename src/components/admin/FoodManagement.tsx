@@ -285,7 +285,7 @@ export default function FoodManagement() {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Manage Foods</h2>
+          <h2 className="text-lg sm:text-xl font-semibold">Manage Foods</h2>
         </div>
         <Card>
           <CardContent className="p-6">
@@ -298,20 +298,21 @@ export default function FoodManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-semibold">Manage Foods</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-lg sm:text-xl font-semibold">Manage Foods</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Total: {foods.length} items | Available: {foods.filter(f => f.is_available).length} | Unavailable: {foods.filter(f => !f.is_available).length}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {selectedFoods.length > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" size="sm">
                   <Trash className="w-4 h-4 mr-2" />
-                  Delete Selected ({selectedFoods.length})
+                  <span className="hidden sm:inline">Delete Selected ({selectedFoods.length})</span>
+                  <span className="sm:hidden">Delete ({selectedFoods.length})</span>
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -337,9 +338,10 @@ export default function FoodManagement() {
             }
           }}>
             <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
+              <Button size="sm" className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
-                Add Food Item
+                <span className="hidden sm:inline">Add Food Item</span>
+                <span className="sm:hidden">Add Food</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
@@ -475,7 +477,7 @@ export default function FoodManagement() {
       
       <Card>
         <CardHeader>
-          <CardTitle>Food Items ({foods.length})</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Food Items ({foods.length})</CardTitle>
           <CardDescription>
             Manage your food menu items, prices, and availability
           </CardDescription>
@@ -488,19 +490,20 @@ export default function FoodManagement() {
             </div>
           ) : (
             <div className="space-y-4">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12">
+                    <TableHead className="w-8 sm:w-12">
                       <Checkbox
                         checked={selectedFoods.length === foods.length}
                         onCheckedChange={handleSelectAll}
                       />
                     </TableHead>
-                    <TableHead>Image</TableHead>
+                    <TableHead className="hidden sm:table-cell">Image</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Price</TableHead>
-                    <TableHead>Delivery</TableHead>
+                    <TableHead className="hidden md:table-cell">Delivery</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -514,37 +517,37 @@ export default function FoodManagement() {
                           onCheckedChange={(checked) => handleSelectFood(food.id, checked as boolean)}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         {food.image_url ? (
                           <img 
                             src={food.image_url} 
                             alt={food.name}
-                            className="w-12 h-12 object-cover rounded-md"
+                            className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded-md"
                             onError={(e) => {
                               e.currentTarget.src = '/placeholder.svg';
                             }}
                           />
                         ) : (
-                          <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-muted rounded-md flex items-center justify-center">
                             <Package className="w-6 h-6 text-muted-foreground" />
                           </div>
                         )}
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{food.name}</div>
+                          <div className="font-medium text-sm">{food.name}</div>
                           {food.description && (
-                            <div className="text-sm text-muted-foreground truncate max-w-xs">
+                            <div className="text-xs text-muted-foreground truncate max-w-xs hidden sm:block">
                               {food.description}
                             </div>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>₵{food.price.toFixed(2)}</TableCell>
-                      <TableCell>₵{food.delivery_price.toFixed(2)}</TableCell>
+                      <TableCell className="text-sm">₵{food.price.toFixed(2)}</TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">₵{food.delivery_price.toFixed(2)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Badge variant={food.is_available ? "default" : "secondary"}>
+                          <Badge variant={food.is_available ? "default" : "secondary"} className="text-xs">
                             {food.is_available ? "Available" : "Unavailable"}
                           </Badge>
                           <Button
@@ -592,6 +595,7 @@ export default function FoodManagement() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </div>
           )}
         </CardContent>

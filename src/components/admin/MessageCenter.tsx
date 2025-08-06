@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -12,15 +11,7 @@ import {
   User, 
   Clock,
   Phone,
-  Search
 } from "lucide-react";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface Message {
   id: string;
@@ -32,42 +23,29 @@ interface Message {
   chat_id: string;
 }
 
-interface Chat {
+interface CustomerChat {
   id: string;
   customer_id: string;
-  admin_id: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
   customer: {
     name: string;
     phone: string;
     email: string | null;
   };
   messages: Message[];
-  unread_count?: number;
-}
-
-interface Customer {
-  id: string;
-  name: string;
-  phone: string;
-  email: string | null;
+  last_message?: string;
+  last_message_time?: string;
+  unread_count: number;
 }
 
 const MessageCenter = () => {
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+  const [customerChats, setCustomerChats] = useState<CustomerChat[]>([]);
+  const [selectedChat, setSelectedChat] = useState<CustomerChat | null>(null);
   const [newMessage, setNewMessage] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchChats();
-    fetchCustomers();
+    fetchCustomerChats();
 
     // Set up real-time subscription for messages
     const channel = supabase
@@ -80,7 +58,7 @@ const MessageCenter = () => {
           table: 'nana_chat_messages'
         },
         () => {
-          fetchChats(); // Refresh chats when new messages arrive
+          fetchCustomerChats(); // Refresh chats when new messages arrive
         }
       )
       .subscribe();
@@ -90,43 +68,63 @@ const MessageCenter = () => {
     };
   }, []);
 
-  const fetchChats = async () => {
+  const fetchCustomerChats = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('nana_chats')
+      
+      // Get all customers who have sent messages
+      const { data: customers, error } = await supabase
+        .from('nana_customers')
         .select(`
-          *,
-          customer:nana_customers(
-            name,
-            phone,
-            email
-          ),
-          messages:nana_chat_messages(
-            id,
-            sender_id,
-            sender_type,
-            message,
-            is_read,
-            created_at,
-            chat_id
-          )
+          id,
+          name,
+          phone,
+          email
         `)
-        .order('updated_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Calculate unread message count for each chat with proper typing
-      const chatsWithUnread: Chat[] = data?.map(chat => ({
-        ...chat,
-        messages: chat.messages?.map((msg: any) => ({
-          ...msg,
-          sender_type: msg.sender_type as 'customer' | 'admin'
-        })) || [],
-        unread_count: chat.messages?.filter((msg: any) => !msg.is_read && msg.sender_type === 'customer').length || 0
-      })) || [];
+      // For each customer, get their messages and create chat objects
+      const customerChatsData: CustomerChat[] = [];
+      
+      for (const customer of customers || []) {
+        const { data: messages } = await supabase
+          .from('nana_chat_messages')
+          .select('*')
+          .eq('sender_id', customer.id)
+          .order('created_at', { ascending: false });
 
-      setChats(chatsWithUnread);
+        if (messages && messages.length > 0) {
+          const unreadCount = messages.filter(msg => 
+            msg.sender_type === 'customer' && !msg.is_read
+          ).length;
+
+          customerChatsData.push({
+            id: customer.id,
+            customer_id: customer.id,
+            customer: {
+              name: customer.name,
+              phone: customer.phone,
+              email: customer.email
+            },
+            messages: messages.map(msg => ({
+              ...msg,
+              sender_type: msg.sender_type as 'customer' | 'admin'
+            })),
+            last_message: messages[0]?.message,
+            last_message_time: messages[0]?.created_at,
+            unread_count: unreadCount
+          });
+        }
+      }
+
+      // Sort by last message time
+      customerChatsData.sort((a, b) => 
+        new Date(b.last_message_time || 0).getTime() - new Date(a.last_message_time || 0).getTime()
+      );
+
+      setCustomerChats(customerChatsData);
     } catch (error) {
       console.error('Error fetching chats:', error);
       toast({
@@ -139,76 +137,6 @@ const MessageCenter = () => {
     }
   };
 
-  const fetchCustomers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('nana_customers')
-        .select('id, name, phone, email')
-        .order('name', { ascending: true });
-
-      if (error) throw error;
-      setCustomers(data || []);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-    }
-  };
-
-  const createNewChat = async () => {
-    if (!selectedCustomer) {
-      toast({
-        title: "Error",
-        description: "Please select a customer",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Check if chat already exists
-      const existingChat = chats.find(chat => chat.customer_id === selectedCustomer);
-      if (existingChat) {
-        setSelectedChat(existingChat);
-        setSelectedCustomer("");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('nana_chats')
-        .insert({
-          customer_id: selectedCustomer,
-          status: 'active'
-        })
-        .select(`
-          *,
-          customer:nana_customers(
-            name,
-            phone,
-            email
-          )
-        `)
-        .single();
-
-      if (error) throw error;
-
-      const newChat = { ...data, messages: [], unread_count: 0 };
-      setChats([newChat, ...chats]);
-      setSelectedChat(newChat);
-      setSelectedCustomer("");
-
-      toast({
-        title: "Success",
-        description: "New chat created",
-      });
-    } catch (error) {
-      console.error('Error creating chat:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create chat",
-        variant: "destructive",
-      });
-    }
-  };
-
   const sendMessage = async () => {
     if (!selectedChat || !newMessage.trim()) return;
 
@@ -216,7 +144,7 @@ const MessageCenter = () => {
       const { data, error } = await supabase
         .from('nana_chat_messages')
         .insert({
-          chat_id: selectedChat.id,
+          chat_id: null, // We're not using the chat table anymore
           sender_id: 'admin', // In a real app, this would be the admin's ID
           sender_type: 'admin',
           message: newMessage.trim()
@@ -226,14 +154,8 @@ const MessageCenter = () => {
 
       if (error) throw error;
 
-      // Update the chat's updated_at timestamp
-      await supabase
-        .from('nana_chats')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', selectedChat.id);
-
       setNewMessage("");
-      fetchChats(); // Refresh to get the new message
+      fetchCustomerChats(); // Refresh to get the new message
 
       toast({
         title: "Success",
@@ -249,39 +171,34 @@ const MessageCenter = () => {
     }
   };
 
-  const markMessagesAsRead = async (chatId: string) => {
+  const markMessagesAsRead = async (customerId: string) => {
     try {
       await supabase
         .from('nana_chat_messages')
         .update({ is_read: true })
-        .eq('chat_id', chatId)
+        .eq('sender_id', customerId)
         .eq('sender_type', 'customer')
         .eq('is_read', false);
 
       // Refresh chats to update unread counts
-      fetchChats();
+      fetchCustomerChats();
     } catch (error) {
       console.error('Error marking messages as read:', error);
     }
   };
 
-  const handleChatSelect = (chat: Chat) => {
+  const handleChatSelect = (chat: CustomerChat) => {
     setSelectedChat(chat);
-    if (chat.unread_count && chat.unread_count > 0) {
-      markMessagesAsRead(chat.id);
+    if (chat.unread_count > 0) {
+      markMessagesAsRead(chat.customer_id);
     }
   };
-
-  const filteredChats = chats.filter(chat =>
-    chat.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    chat.customer.phone.includes(searchTerm)
-  );
 
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Message Center</h2>
+          <h2 className="text-lg sm:text-xl font-semibold">Message Center</h2>
         </div>
         <Card>
           <CardContent className="flex items-center justify-center py-8">
@@ -296,67 +213,36 @@ const MessageCenter = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold">Message Center</h2>
-          <p className="text-sm text-muted-foreground">
-            Communicate with your customers ({chats.length} conversations)
+          <h2 className="text-lg sm:text-xl font-semibold">Message Center</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Communicate with your customers ({customerChats.length} conversations)
           </p>
         </div>
         <Badge variant="outline" className="text-primary">
           <MessageCircle className="w-4 h-4 mr-1" />
-          {chats.reduce((sum, chat) => sum + (chat.unread_count || 0), 0)} Unread
+          {customerChats.reduce((sum, chat) => sum + chat.unread_count, 0)} Unread
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 h-[500px] sm:h-[600px]">
         {/* Chat List */}
         <div className="lg:col-span-1">
           <Card className="h-full">
             <CardHeader>
-              <CardTitle className="text-lg">Conversations</CardTitle>
-              <div className="space-y-4">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search conversations..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                
-                {/* New Chat */}
-                <div className="flex gap-2">
-                  <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name} - {customer.phone}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button onClick={createNewChat} size="sm">
-                    <MessageCircle className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+              <CardTitle className="text-base sm:text-lg">Customer Messages</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="space-y-1 max-h-96 overflow-y-auto">
-                {filteredChats.length === 0 ? (
+              <div className="space-y-1 max-h-80 sm:max-h-96 overflow-y-auto">
+                {customerChats.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No conversations yet</p>
+                    <p className="text-xs sm:text-sm">No customer messages yet</p>
                   </div>
                 ) : (
-                  filteredChats.map((chat) => (
+                  customerChats.map((chat) => (
                     <div
                       key={chat.id}
-                      className={`p-4 cursor-pointer hover:bg-muted transition-colors border-b ${
+                      className={`p-3 sm:p-4 cursor-pointer hover:bg-muted transition-colors border-b ${
                         selectedChat?.id === chat.id ? 'bg-muted' : ''
                       }`}
                       onClick={() => handleChatSelect(chat)}
@@ -365,27 +251,29 @@ const MessageCenter = () => {
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <User className="w-4 h-4" />
-                            <span className="font-medium">{chat.customer.name}</span>
-                            {chat.unread_count && chat.unread_count > 0 && (
+                            <span className="font-medium text-sm">{chat.customer.name}</span>
+                            {chat.unread_count > 0 && (
                               <Badge variant="default" className="text-xs">
                                 {chat.unread_count}
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <Phone className="w-3 h-3" />
                             {chat.customer.phone}
                           </div>
-                          {chat.messages && chat.messages.length > 0 && (
-                            <p className="text-sm text-muted-foreground mt-1 truncate">
-                              {chat.messages[chat.messages.length - 1]?.message}
+                          {chat.last_message && (
+                            <p className="text-xs text-muted-foreground mt-1 truncate">
+                              {chat.last_message}
                             </p>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        {chat.last_message_time && (
+                          <div className="text-xs text-muted-foreground">
                           <Clock className="w-3 h-3 inline mr-1" />
-                          {new Date(chat.updated_at).toLocaleDateString()}
-                        </div>
+                            {new Date(chat.last_message_time).toLocaleDateString()}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
@@ -401,11 +289,11 @@ const MessageCenter = () => {
             {selectedChat ? (
               <>
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                     <User className="w-5 h-5" />
                     {selectedChat.customer.name}
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     {selectedChat.customer.phone}
                     {selectedChat.customer.email && ` • ${selectedChat.customer.email}`}
                   </p>
@@ -413,7 +301,7 @@ const MessageCenter = () => {
                 
                 <CardContent className="flex-1 flex flex-col">
                   {/* Messages */}
-                  <div className="flex-1 space-y-4 mb-4 max-h-96 overflow-y-auto">
+                  <div className="flex-1 space-y-3 sm:space-y-4 mb-4 max-h-64 sm:max-h-96 overflow-y-auto">
                     {selectedChat.messages && selectedChat.messages.length > 0 ? (
                       selectedChat.messages
                         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -423,13 +311,13 @@ const MessageCenter = () => {
                             className={`flex ${message.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}
                           >
                             <div
-                              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                              className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
                                 message.sender_type === 'admin'
                                   ? 'bg-primary text-primary-foreground'
                                   : 'bg-muted text-muted-foreground'
                               }`}
                             >
-                              <p className="text-sm">{message.message}</p>
+                              <p className="text-xs sm:text-sm">{message.message}</p>
                               <p className="text-xs opacity-70 mt-1">
                                 {new Date(message.created_at).toLocaleTimeString()}
                               </p>
@@ -439,7 +327,7 @@ const MessageCenter = () => {
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
                         <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p>No messages yet. Start the conversation!</p>
+                        <p className="text-xs sm:text-sm">No messages yet. Start the conversation!</p>
                       </div>
                     )}
                   </div>
@@ -456,9 +344,9 @@ const MessageCenter = () => {
                           sendMessage();
                         }
                       }}
-                      className="flex-1 min-h-[80px]"
+                      className="flex-1 min-h-[60px] sm:min-h-[80px] text-sm"
                     />
-                    <Button onClick={sendMessage} className="self-end">
+                    <Button onClick={sendMessage} className="self-end" size="sm">
                       <Send className="w-4 h-4" />
                     </Button>
                   </div>
@@ -468,7 +356,7 @@ const MessageCenter = () => {
               <CardContent className="flex-1 flex items-center justify-center">
                 <div className="text-center text-muted-foreground">
                   <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Select a conversation to start messaging</p>
+                  <p className="text-sm">Select a customer to start messaging</p>
                 </div>
               </CardContent>
             )}

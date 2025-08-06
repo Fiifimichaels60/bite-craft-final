@@ -162,12 +162,35 @@ const OrderManagement = () => {
         updateData.rejected_at = new Date().toISOString();
       }
 
-      const { error } = await supabase
+      const { data: updatedOrder, error } = await supabase
         .from('nana_orders')
         .update(updateData)
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .select(`
+          *,
+          customer:nana_customers(name, email)
+        `)
+        .single();
 
       if (error) throw error;
+
+      // Send email notification to customer
+      if (updatedOrder && updatedOrder.customer?.email && newStatus === 'ready') {
+        try {
+          await supabase.functions.invoke('send-order-notification', {
+            body: {
+              to: updatedOrder.customer.email,
+              customerName: updatedOrder.customer.name,
+              orderId: orderId.slice(0, 8),
+              status: newStatus,
+              orderType: updatedOrder.order_type
+            }
+          });
+        } catch (emailError) {
+          console.error('Error sending email notification:', emailError);
+          // Don't fail the status update if email fails
+        }
+      }
 
       toast({
         title: "Success",
@@ -315,6 +338,9 @@ const OrderManagement = () => {
         <CardHeader>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex items-center gap-4 flex-1">
+              <DownloadActions type="orders" />
+            </div>
+            <div className="flex items-center gap-4 flex-1">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -324,7 +350,8 @@ const OrderManagement = () => {
                   className="pl-10"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <div className="flex gap-2">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-40">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Status" />
@@ -339,7 +366,7 @@ const OrderManagement = () => {
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+                <Select value={paymentFilter} onValueChange={setPaymentFilter}>
                 <SelectTrigger className="w-40">
                   <CreditCard className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Payment" />
@@ -351,6 +378,7 @@ const OrderManagement = () => {
                   <SelectItem value="failed">Failed</SelectItem>
                 </SelectContent>
               </Select>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -366,17 +394,17 @@ const OrderManagement = () => {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Order</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Items</TableHead>
+                    <TableHead className="hidden sm:table-cell">Items</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Date</TableHead>
+                    <TableHead className="hidden md:table-cell">Payment</TableHead>
+                    <TableHead className="hidden lg:table-cell">Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -385,35 +413,35 @@ const OrderManagement = () => {
                     <TableRow key={order.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">#{order.id.slice(0, 8)}</div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="font-medium text-sm">#{order.id.slice(0, 8)}</div>
+                          <div className="text-xs text-muted-foreground">
                             {order.order_type === 'delivery' ? 'Delivery' : 'Pickup'}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium flex items-center gap-2">
+                          <div className="font-medium flex items-center gap-1 text-sm">
                             <User className="w-3 h-3" />
                             {order.customer.name}
                           </div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-2">
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
                             <Phone className="w-3 h-3" />
                             {order.customer.phone}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div className="text-sm">
                           {order.order_items.length} item(s)
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">
+                          <div className="font-medium text-sm">
                             GH₵{(Number(order.total_amount) + Number(order.delivery_fee)).toFixed(2)}
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-xs text-muted-foreground">
                             +₵{order.delivery_fee.toFixed(2)} delivery
                           </div>
                         </div>
@@ -421,7 +449,7 @@ const OrderManagement = () => {
                       <TableCell>
                         {getStatusBadge(order.status)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <div className="flex items-center gap-2">
                           {getPaymentBadge(order.payment_status)}
                           {order.payment_status === 'pending' && (
@@ -436,7 +464,7 @@ const OrderManagement = () => {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="w-3 h-3" />
                           {new Date(order.created_at).toLocaleDateString()}
@@ -450,8 +478,8 @@ const OrderManagement = () => {
                               size="sm"
                               onClick={() => setSelectedOrder(order)}
                             >
-                              <Eye className="w-4 h-4 mr-2" />
-                              View
+                              <Eye className="w-4 h-4 sm:mr-2" />
+                              <span className="hidden sm:inline">View</span>
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">

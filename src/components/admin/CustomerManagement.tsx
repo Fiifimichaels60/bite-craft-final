@@ -237,6 +237,9 @@ const CustomerManagement = () => {
         <CardHeader>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex items-center gap-4 flex-1">
+              <DownloadActions type="customers" />
+            </div>
+            <div className="flex items-center gap-4 flex-1">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -247,7 +250,7 @@ const CustomerManagement = () => {
                 />
               </div>
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-32 sm:w-48">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
@@ -273,15 +276,16 @@ const CustomerManagement = () => {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="overflow-x-auto">
+              <Table>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Customer</TableHead>
                     <TableHead>Contact</TableHead>
-                    <TableHead>Orders</TableHead>
+                    <TableHead className="hidden sm:table-cell">Orders</TableHead>
                     <TableHead>Total Spent</TableHead>
-                    <TableHead>Joined</TableHead>
+                    <TableHead className="hidden lg:table-cell">Joined</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -300,35 +304,35 @@ const CustomerManagement = () => {
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-sm">
+                          <div className="flex items-center gap-1 text-sm">
                             <Phone className="w-3 h-3" />
                             {customer.phone}
                           </div>
                           {customer.email && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Mail className="w-3 h-3" />
                               {customer.email}
                             </div>
                           )}
                           {customer.address && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground hidden md:flex">
                               <MapPin className="w-3 h-3" />
                               {customer.address}
                             </div>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge variant="secondary">
                           {customer.total_orders} orders
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium">
+                        <div className="font-medium text-sm">
                           GH₵{customer.total_spent?.toFixed(2) || '0.00'}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="w-3 h-3" />
                           {new Date(customer.created_at).toLocaleDateString()}
@@ -342,8 +346,8 @@ const CustomerManagement = () => {
                               size="sm"
                               onClick={() => handleViewCustomer(customer)}
                             >
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
+                              <Eye className="w-4 h-4 sm:mr-2" />
+                              <span className="hidden sm:inline">View Details</span>
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -445,6 +449,7 @@ const CustomerManagement = () => {
                   ))}
                 </TableBody>
               </Table>
+            </div>
             </div>
           )}
         </CardContent>

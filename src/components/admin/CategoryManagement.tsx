@@ -210,16 +210,17 @@ const CategoryManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Category Management</h2>
-          <p className="text-muted-foreground">Manage food categories for your menu</p>
+          <h2 className="text-lg sm:text-2xl font-bold">Category Management</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">Manage food categories for your menu</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openCreateDialog}>
+            <Button onClick={openCreateDialog} size="sm">
               <Plus className="h-4 w-4 mr-2" />
-              Add Category
+              <span className="hidden sm:inline">Add Category</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
@@ -295,7 +296,7 @@ const CategoryManagement = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Categories</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Categories</CardTitle>
           <CardDescription>
             {categories.length} categories created
           </CardDescription>
@@ -307,13 +308,14 @@ const CategoryManagement = () => {
               <p>No categories yet. Create your first category to get started.</p>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead className="hidden md:table-cell">Description</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead className="hidden lg:table-cell">Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -326,18 +328,18 @@ const CategoryManagement = () => {
                           <img
                             src={category.image_url}
                             alt={category.name}
-                            className="w-10 h-10 rounded-md object-cover"
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-md object-cover"
                           />
                         )}
-                        {category.name}
+                        <span className="text-sm">{category.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-xs truncate">
+                    <TableCell className="max-w-xs truncate hidden md:table-cell text-sm">
                       {category.description || "No description"}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Badge variant={category.is_active ? "default" : "secondary"}>
+                        <Badge variant={category.is_active ? "default" : "secondary"} className="text-xs">
                           {category.is_active ? "Active" : "Inactive"}
                         </Badge>
                         <Switch
@@ -346,7 +348,7 @@ const CategoryManagement = () => {
                         />
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden lg:table-cell text-sm">
                       {new Date(category.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
@@ -371,6 +373,7 @@ const CategoryManagement = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
