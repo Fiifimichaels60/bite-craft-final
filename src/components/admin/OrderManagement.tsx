@@ -492,32 +492,32 @@ const OrderManagement = () => {
               </div>
               <div className="flex gap-2">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="preparing">Preparing</SelectItem>
-                  <SelectItem value="ready">Ready</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
+                  <SelectTrigger className="w-40">
+                    <Filter className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="preparing">Preparing</SelectItem>
+                    <SelectItem value="ready">Ready</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                <SelectTrigger className="w-40">
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Payment" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Payments</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                </SelectContent>
-              </Select>
+                  <SelectTrigger className="w-40">
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Payment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Payments</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -733,23 +733,23 @@ const OrderManagement = () => {
                                         </Button>
                                       ))}
                                     </div>
-                                   </div>
+                                  </div>
 
-                                   {/* Payment Status Update */}
-                                   {selectedOrder.payment_status === 'pending' && (
-                                     <div className="space-y-4">
-                                       <h4 className="font-semibold">Payment Actions</h4>
-                                       <Button
-                                         onClick={() => markAsPaid(selectedOrder.id)}
-                                         className="bg-green-600 hover:bg-green-700"
-                                       >
-                                         <CreditCard className="w-4 h-4 mr-2" />
-                                         Mark as Paid & Confirm Order
-                                       </Button>
-                                     </div>
-                                   )}
+                                  {/* Payment Status Update */}
+                                  {selectedOrder.payment_status === 'pending' && (
+                                    <div className="space-y-4">
+                                      <h4 className="font-semibold">Payment Actions</h4>
+                                      <Button
+                                        onClick={() => markAsPaid(selectedOrder.id)}
+                                        className="bg-green-600 hover:bg-green-700"
+                                      >
+                                        <CreditCard className="w-4 h-4 mr-2" />
+                                        Mark as Paid & Confirm Order
+                                      </Button>
+                                    </div>
+                                  )}
 
-                                   {/* Notes */}
+                                  {/* Notes */}
                                   {selectedOrder.notes && (
                                     <div>
                                       <h4 className="font-semibold mb-2">Order Notes</h4>
@@ -795,154 +795,6 @@ const OrderManagement = () => {
                             </AlertDialogContent>
                           </AlertDialog>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-export default OrderManagement;
-                          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle>Order Details</DialogTitle>
-                              <DialogDescription>
-                                Complete information for order #{selectedOrder?.id.slice(0, 8)}
-                              </DialogDescription>
-                            </DialogHeader>
-                            
-                            {selectedOrder && (
-                              <div className="space-y-6">
-                                {/* Order Summary */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
-                                  <div>
-                                    <h4 className="font-semibold mb-2">Order Information</h4>
-                                    <div className="space-y-2 text-sm">
-                                      <p><span className="font-medium">Order ID:</span> {selectedOrder.id}</p>
-                                      <p><span className="font-medium">Type:</span> {selectedOrder.order_type}</p>
-                                      <p><span className="font-medium">Status:</span> {getStatusBadge(selectedOrder.status)}</p>
-                                      <p><span className="font-medium">Payment:</span> {getPaymentBadge(selectedOrder.payment_status)}</p>
-                                      <p><span className="font-medium">Reference:</span> {selectedOrder.payment_reference || 'N/A'}</p>
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <h4 className="font-semibold mb-2">Customer Information</h4>
-                                    <div className="space-y-2 text-sm">
-                                      <p><span className="font-medium">Name:</span> {selectedOrder.customer.name}</p>
-                                      <p><span className="font-medium">Phone:</span> {selectedOrder.customer.phone}</p>
-                                      {selectedOrder.customer.email && (
-                                        <p><span className="font-medium">Email:</span> {selectedOrder.customer.email}</p>
-                                      )}
-                                      {selectedOrder.delivery_address && (
-                                        <p><span className="font-medium">Delivery Address:</span> {selectedOrder.delivery_address}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Order Items */}
-                                <div>
-                                  <h4 className="font-semibold mb-4">Order Items</h4>
-                                  <div className="space-y-3">
-                                    {selectedOrder.order_items.map((item) => (
-                                      <div key={item.id} className="flex justify-between items-center p-3 border rounded">
-                                        <div>
-                                          <h5 className="font-medium">{item.food.name}</h5>
-                                          {item.food.description && (
-                                            <p className="text-sm text-muted-foreground">{item.food.description}</p>
-                                          )}
-                                          <p className="text-sm">
-                                            {item.quantity} × GH₵{item.unit_price.toFixed(2)}
-                                          </p>
-                                        </div>
-                                        <div className="text-right">
-                                          <p className="font-medium">GH₵{item.total_price.toFixed(2)}</p>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Order Total */}
-                                <div className="border-t pt-4">
-                                  <div className="space-y-2">
-                                    <div className="flex justify-between">
-                                      <span>Subtotal:</span>
-                                      <span>GH₵{selectedOrder.total_amount.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Delivery Fee:</span>
-                                      <span>GH₵{selectedOrder.delivery_fee.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between font-semibold text-lg border-t pt-2">
-                                      <span>Total:</span>
-                                      <span>GH₵{(Number(selectedOrder.total_amount) + Number(selectedOrder.delivery_fee)).toFixed(2)}</span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Status Update */}
-                                <div className="space-y-4">
-                                  <h4 className="font-semibold">Update Order Status</h4>
-                                  <div className="flex gap-2 flex-wrap">
-                                    {['confirmed', 'preparing', 'ready', 'delivered', 'rejected'].map((status) => (
-                                      <Button
-                                        key={status}
-                                        variant={selectedOrder.status === status ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => updateOrderStatus(selectedOrder.id, status)}
-                                        disabled={selectedOrder.status === status}
-                                      >
-                                        {getStatusIcon(status)}
-                                        <span className="ml-1 capitalize">{status}</span>
-                                      </Button>
-                                    ))}
-                                  </div>
-                                 </div>
-
-                                 {/* Payment Status Update */}
-                                 {selectedOrder.payment_status === 'pending' && (
-                                   <div className="space-y-4">
-                                     <h4 className="font-semibold">Payment Actions</h4>
-                                     <Button
-                                       onClick={() => markAsPaid(selectedOrder.id)}
-                                       className="bg-green-600 hover:bg-green-700"
-                                     >
-                                       <CreditCard className="w-4 h-4 mr-2" />
-                                       Mark as Paid & Confirm Order
-                                     </Button>
-                                   </div>
-                                 )}
-
-                                 {/* Notes */}
-                                {selectedOrder.notes && (
-                                  <div>
-                                    <h4 className="font-semibold mb-2">Order Notes</h4>
-                                    <p className="text-sm p-3 bg-muted rounded">{selectedOrder.notes}</p>
-                                  </div>
-                                )}
-
-                                {/* Timestamps */}
-                                <div className="text-xs text-muted-foreground space-y-1">
-                                  <p>Created: {new Date(selectedOrder.created_at).toLocaleString()}</p>
-                                  <p>Updated: {new Date(selectedOrder.updated_at).toLocaleString()}</p>
-                                  {selectedOrder.delivered_at && (
-                                    <p>Delivered: {new Date(selectedOrder.delivered_at).toLocaleString()}</p>
-                                  )}
-                                  {selectedOrder.rejected_at && (
-                                    <p>Rejected: {new Date(selectedOrder.rejected_at).toLocaleString()}</p>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </DialogContent>
-                        </Dialog>
                       </TableCell>
                     </TableRow>
                   ))}
